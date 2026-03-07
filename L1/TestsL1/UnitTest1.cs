@@ -93,24 +93,26 @@ public class UnitTest1
     }
 
     [Fact]
-    public void DivideInSignMagnitude_WorksWithPrecision()
+    public void DivideInSignMagnitude_ReturnsBinaryFraction()
     {
-        var result = BinaryIntegerMath.DivideInSignMagnitude(7, 2);
+        var result = BinaryIntegerMath.DivideInSignMagnitude(20, 80);
 
-        Assert.Equal(3.5m, result.DecimalValue);
-        Assert.Equal(350000, BinaryIntegerMath.FromSignMagnitude(result.Bits));
-        Assert.Equal(5, result.PrecisionDigits);
+        Assert.Equal(0.25m, result.DecimalValue);
+        Assert.Equal("0.01000000000000000000000000000000", result.BinaryValue);
+        Assert.Equal(32, result.FractionalBits);
     }
 
     [Fact]
     public void DivideInSignMagnitude_NegativeAndValidation_Work()
     {
-        var result = BinaryIntegerMath.DivideInSignMagnitude(-1, 8);
+        var result = BinaryIntegerMath.DivideInSignMagnitude(-1, 8, 8);
 
         Assert.Equal(-0.125m, result.DecimalValue);
+        Assert.Equal("-0.00100000", result.BinaryValue);
+        Assert.Equal(8, result.FractionalBits);
 
         Assert.Throws<DivideByZeroException>(() => BinaryIntegerMath.DivideInSignMagnitude(10, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => BinaryIntegerMath.DivideInSignMagnitude(10, 2, 10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => BinaryIntegerMath.DivideInSignMagnitude(10, 2, 65));
     }
 
     [Fact]

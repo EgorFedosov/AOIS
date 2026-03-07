@@ -1,8 +1,10 @@
+using System.Text;
+
 namespace L1;
 
 public sealed record IntegerOperationResult(int[] Bits, long DecimalValue);
 
-public sealed record DivisionOperationResult(int[] Bits, decimal DecimalValue, int PrecisionDigits);
+public sealed record DivisionOperationResult(string BinaryValue, decimal DecimalValue, int FractionalBits);
 
 public static class BinaryIntegerMath
 {
@@ -189,35 +191,22 @@ public static class BinaryIntegerMath
         return new IntegerOperationResult(bits, product);
     }
 
-    public static DivisionOperationResult DivideInSignMagnitude(int dividend, int divisor, int precisionDigits = 5)
+    public static DivisionOperationResult DivideInSignMagnitude(int dividend, int divisor, int fractionalBits = 32)
     {
         if (divisor == 0)
         {
             throw new DivideByZeroException("Division by zero is not allowed.");
         }
 
-        if (precisionDigits is < 0 or > 9)
+        if (fractionalBits is < 0 or > 64)
         {
-            throw new ArgumentOutOfRangeException(nameof(precisionDigits), "Precision must be in range [0..9].");
+            throw new ArgumentOutOfRangeException(nameof(fractionalBits), "Fractional bit count must be in range [0..64].");
         }
 
-        var absDividend = dividend < 0 ? -(long)dividend : dividend;
-        var absDivisor = divisor < 0 ? -(long)divisor : divisor;
-        var scale = Pow10(precisionDigits);
+        var decimalValue = dividend / (decimal)divisor;
+        var binaryValue = ToBinaryQuotient(dividend, divisor, fractionalBits);
 
-        var scaledDividend = checked(absDividend * scale);
-        var scaledQuotient = scaledDividend / absDivisor;
-
-        var isNegative = (dividend < 0) ^ (divisor < 0);
-        if (isNegative && scaledQuotient != 0)
-        {
-            scaledQuotient = -scaledQuotient;
-        }
-
-        var bits = ToSignMagnitudeFromLong(scaledQuotient);
-        var decimalValue = scaledQuotient / (decimal)scale;
-
-        return new DivisionOperationResult(bits, decimalValue, precisionDigits);
+        return new DivisionOperationResult(binaryValue, decimalValue, fractionalBits);
     }
 
     private static void WriteMagnitudeBits(int[] bits, long magnitude)
@@ -270,14 +259,64 @@ public static class BinaryIntegerMath
         return result;
     }
 
-    private static long Pow10(int exponent)
+    private static string ToBinaryQuotient(int dividend, int divisor, int fractionalBits)
     {
-        long value = 1;
-        for (var i = 0; i < exponent; i++)
+        var absDividend = dividend < 0 ? -(long)dividend : dividend;
+        var absDivisor = divisor < 0 ? -(long)divisor : divisor;
+        var integerPart = absDividend / absDivisor;
+        var remainder = absDividend % absDivisor;
+        var isNegative = (dividend < 0) ^ (divisor < 0);
+        var builder = new StringBuilder();
+
+        if (isNegative && (integerPart != 0 || remainder != 0))
         {
-            value *= 10;
+            builder.Append('-');
         }
 
-        return value;
+        builder.Append(ToBinaryMagnitude(integerPart));
+
+        if (fractionalBits == 0)
+        {
+            return builder.ToString();
+        }
+
+        builder.Append('.');
+
+        for (var i = 0; i < fractionalBits; i++)
+        {
+            remainder *= 2;
+
+            if (remainder >= absDivisor)
+            {
+                builder.Append('1');
+                remainder -= absDivisor;
+            }
+            else
+            {
+                builder.Append('0');
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static string ToBinaryMagnitude(long value)
+    {
+        if (value == 0)
+        {
+            return "0";
+        }
+
+        var buffer = new char[64];
+        var position = buffer.Length;
+        var current = value;
+
+        while (current > 0)
+        {
+            buffer[--position] = current % 2 == 0 ? '0' : '1';
+            current /= 2;
+        }
+
+        return new string(buffer, position, buffer.Length - position);
     }
 }

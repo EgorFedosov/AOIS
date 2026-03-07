@@ -61,7 +61,7 @@ public static class ConsoleRunner
         Console.WriteLine("2 - Сложение двух чисел в дополнительном коде");
         Console.WriteLine("3 - Вычитание через отрицание и сложение (доп. код)");
         Console.WriteLine("4 - Умножение двух чисел в прямом коде");
-        Console.WriteLine("5 - Деление двух чисел в прямом коде (точность 5 знаков)");
+        Console.WriteLine("5 - Деление двух чисел в двоичную дробь (32 бита после точки)");
         Console.WriteLine("6 - Операции с плавающей точкой IEEE-754 (32 бита)");
         Console.WriteLine("7 - Сложение двух чисел в Gray BCD");
         Console.WriteLine("0 - Выход");
@@ -123,11 +123,9 @@ public static class ConsoleRunner
         var right = ReadInt("Введите делитель: ");
 
         var result = BinaryIntegerMath.DivideInSignMagnitude(left, right);
-        var format = $"F{result.PrecisionDigits}";
 
-        Console.WriteLine(
-            $"Результат (фиксированная точка, масштаб x10^-{result.PrecisionDigits}): {BitHelpers.ToBitString(result.Bits)}");
-        Console.WriteLine($"Результат (10): {result.DecimalValue.ToString(format, CultureInfo.InvariantCulture)}");
+        Console.WriteLine($"Результат (2):  {result.BinaryValue}");
+        Console.WriteLine($"Результат (10): {result.DecimalValue.ToString(CultureInfo.InvariantCulture)}");
     }
 
     private static void FloatingPointOperation()
