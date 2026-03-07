@@ -126,7 +126,7 @@ public static class ConsoleRunner
         var format = $"F{result.PrecisionDigits}";
 
         Console.WriteLine(
-            $"Результат (2, масштаб x10^-{result.PrecisionDigits}): {BitHelpers.ToBitString(result.Bits)}");
+            $"Результат (фиксированная точка, масштаб x10^-{result.PrecisionDigits}): {BitHelpers.ToBitString(result.Bits)}");
         Console.WriteLine($"Результат (10): {result.DecimalValue.ToString(format, CultureInfo.InvariantCulture)}");
     }
 
@@ -161,7 +161,7 @@ public static class ConsoleRunner
         var right = ReadInt("Введите второе неотрицательное число: ");
         var result = BcdMath.Add(left, right);
 
-        Console.WriteLine($"Результат (2):  {BitHelpers.ToBitString(result.Bits)}");
+        Console.WriteLine($"Результат (Gray BCD): {BitHelpers.ToBitString(result.Bits)}");
         Console.WriteLine($"Результат (10): {result.DecimalValue}");
     }
 

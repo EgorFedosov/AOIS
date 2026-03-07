@@ -52,24 +52,13 @@ public static class BcdMath
             throw new ArgumentOutOfRangeException("Gray BCD supports only non-negative values.");
         }
 
-        var leftBits = EncodeTo32Bits(left);
-        var rightBits = EncodeTo32Bits(right);
-        var resultBits = new int[32];
-        var carry = 0;
-
-        for (var offset = resultBits.Length - BitsPerDigit; offset >= 0; offset -= BitsPerDigit)
-        {
-            var sum = DecodeDigit(leftBits, offset) + DecodeDigit(rightBits, offset) + carry;
-            carry = sum / 10;
-            WriteDigit(resultBits, offset, sum % 10);
-        }
-
-        if (carry != 0)
+        var sum = checked(left + right);
+        if (ExtractDigits(sum).Count > MaxDigits)
         {
             throw new OverflowException("Sum does not fit into 32 bits of packed Gray BCD.");
         }
 
-        return new BcdOperationResult(resultBits, DecodeToDecimal(resultBits));
+        return new BcdOperationResult(EncodeTo32Bits(sum), sum);
     }
 
     private static List<int> ExtractDigits(int value)

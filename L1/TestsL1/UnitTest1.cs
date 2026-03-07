@@ -225,6 +225,15 @@ public class UnitTest1
     }
 
     [Fact]
+    public void GrayBcd_Add_EncodesEachDigitOfFinalSum()
+    {
+        var result = BcdMath.Add(28, 28);
+
+        Assert.Equal(56, result.DecimalValue);
+        Assert.EndsWith("01110101", BitHelpers.ToBitString(result.Bits, false));
+    }
+
+    [Fact]
     public void GrayBcd_ValidationErrors_Work()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => BcdMath.EncodeTo32Bits(-1));
