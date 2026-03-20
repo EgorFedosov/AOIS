@@ -1,0 +1,50 @@
+Summary
+  Generated on: 20.03.2026 - 21:33:36
+  Coverage date: 01.03.2026 - 14:08:28 - 20.03.2026 - 21:33:35
+  Parser: MultiReport (5x Cobertura)
+  Assemblies: 1
+  Classes: 28
+  Files: 3
+  Line coverage: 98.1%
+  Covered lines: 1200
+  Uncovered lines: 23
+  Coverable lines: 1223
+  Total lines: 1326
+  Branch coverage: 92.7% (536 of 578)
+  Covered branches: 536
+  Total branches: 578
+  Method coverage: 98% (258 of 263)
+  Full method coverage: 93.5% (246 of 263)
+  Covered methods: 258
+  Fully covered methods: 246
+  Total methods: 263
+
+L2                                  98.1%
+  L2.AndExpr                         100%
+  L2.BitIndex                        100%
+  L2.BooleanExpressionParser        98.5%
+  L2.BooleanMinimizer               98.1%
+  L2.CalculationMethodResult        88.8%
+  L2.CalculationTableMethodResult    100%
+  L2.CanonicalFormBuilder            100%
+  L2.CanonicalForms                  100%
+  L2.CoverageTable                   100%
+  L2.DerivativeAnalyzer              100%
+  L2.DerivativeResult                100%
+  L2.EquivalentExpr                   50%
+  L2.FictiveVariableFinder           100%
+  L2.GluingStage                    85.7%
+  L2.Implicant                      96.6%
+  L2.ImpliesExpr                     100%
+  L2.KarnaughGroup                   100%
+  L2.KarnaughMapResult              81.8%
+  L2.NotExpr                         100%
+  L2.OrExpr                          100%
+  L2.PostClassAnalyzer               100%
+  L2.PostClasses                     100%
+  L2.TruthTable                      100%
+  L2.TruthTableBuilder               100%
+  L2.TruthTableRow                   100%
+  L2.VariableExpr                    100%
+  L2.ZhegalkinPolynomial             100%
+  L2.ZhegalkinPolynomialBuilder     97.4%
