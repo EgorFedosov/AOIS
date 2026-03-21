@@ -192,6 +192,7 @@ public class UnitTest1
 
         Assert.Equal("01X", combined.ToPattern(3));
         Assert.Equal("(!a & b)", combined.ToTerm(['a', 'b', 'c']));
+        Assert.Equal("(a | !b)", combined.ToClause(['a', 'b', 'c']));
         Assert.True(combined.Covers(2));
         Assert.True(combined.Covers(3));
         Assert.False(combined.Covers(1));
@@ -242,10 +243,59 @@ public class UnitTest1
     }
 
     [Fact]
+    public void MinimizationCalculationSknf_FindsExpectedMinimalClauses()
+    {
+        var table = BuildTable("!(!a->!b)|c");
+        var result = BooleanMinimizer.MinimizeCalculationSknf(table);
+        var clauses = result.SelectedImplicants.Select(implicant => implicant.ToClause(table.Variables)).ToHashSet();
+
+        Assert.Equal([0, 4, 6], result.Minterms);
+        Assert.Equal(2, result.SelectedImplicants.Count);
+        Assert.Contains("(b | c)", clauses);
+        Assert.Contains("(!a | c)", clauses);
+        Assert.True(result.Stages.Count >= 1);
+    }
+
+    [Fact]
+    public void MinimizationCalculationSknf_HandlesConstantFunctions()
+    {
+        var zeroResult = BooleanMinimizer.MinimizeCalculationSknf(BuildTable("a&!a"));
+        var oneResult = BooleanMinimizer.MinimizeCalculationSknf(BuildTable("a|!a"));
+
+        Assert.Equal("0", zeroResult.MinimalDnf);
+        Assert.Single(zeroResult.SelectedImplicants);
+        Assert.Equal("0", zeroResult.SelectedImplicants[0].ToClause(['a']));
+
+        Assert.Equal("1", oneResult.MinimalDnf);
+        Assert.Empty(oneResult.SelectedImplicants);
+    }
+
+    [Fact]
     public void MinimizationTable_BuildsCoverageMatrix()
     {
         var table = BuildTable("!(!a->!b)|c");
         var result = BooleanMinimizer.MinimizeCalculationTable(table);
+
+        Assert.Equal(result.BaseResult.PrimeImplicants.Count, result.Table.Matrix.GetLength(0));
+        Assert.Equal(result.BaseResult.Minterms.Count, result.Table.Matrix.GetLength(1));
+
+        for (var column = 0; column < result.Table.Minterms.Count; column++)
+        {
+            var covered = false;
+            for (var row = 0; row < result.Table.Implicants.Count; row++)
+            {
+                covered |= result.Table.Matrix[row, column];
+            }
+
+            Assert.True(covered);
+        }
+    }
+
+    [Fact]
+    public void MinimizationTableSknf_BuildsCoverageMatrix()
+    {
+        var table = BuildTable("!(!a->!b)|c");
+        var result = BooleanMinimizer.MinimizeCalculationTableSknf(table);
 
         Assert.Equal(result.BaseResult.PrimeImplicants.Count, result.Table.Matrix.GetLength(0));
         Assert.Equal(result.BaseResult.Minterms.Count, result.Table.Matrix.GetLength(1));
@@ -276,14 +326,34 @@ public class UnitTest1
     }
 
     [Fact]
-    public void KarnaughMap_ReturnsNoteForFiveVariables()
+    public void KarnaughMap_BuildsForFiveVariables()
     {
         var map = BooleanMinimizer.MinimizeKarnaugh(BuildTable("a|b|c|d|e"));
 
-        Assert.NotNull(map.Note);
-        Assert.Empty(map.RowLabels);
-        Assert.Empty(map.ColumnLabels);
-        Assert.Empty(map.Values);
+        Assert.Null(map.Note);
+        Assert.Equal(['a', 'b'], map.RowVariables);
+        Assert.Equal(['c', 'd', 'e'], map.ColumnVariables);
+        Assert.Equal(4, map.RowLabels.Count);
+        Assert.Equal(8, map.ColumnLabels.Count);
+        Assert.Equal(4, map.Values.GetLength(0));
+        Assert.Equal(8, map.Values.GetLength(1));
+        Assert.NotEmpty(map.Groups);
+    }
+
+    [Fact]
+    public void KarnaughMapSknf_BuildsForFiveVariables()
+    {
+        var map = BooleanMinimizer.MinimizeKarnaughSknf(BuildTable("a|b|c|d|e"));
+
+        Assert.Null(map.Note);
+        Assert.Equal(['a', 'b'], map.RowVariables);
+        Assert.Equal(['c', 'd', 'e'], map.ColumnVariables);
+        Assert.Equal(4, map.RowLabels.Count);
+        Assert.Equal(8, map.ColumnLabels.Count);
+        Assert.Equal(4, map.Values.GetLength(0));
+        Assert.Equal(8, map.Values.GetLength(1));
+        Assert.NotEmpty(map.Groups);
+        Assert.Equal("(a | b | c | d | e)", map.MinimalDnf);
     }
 
     [Fact]

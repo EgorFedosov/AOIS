@@ -56,8 +56,11 @@ public sealed class ConsoleRunner(TextReader? input = null, TextWriter? output =
             var fictiveVariables = FictiveVariableFinder.Find(table);
             var derivatives = DerivativeAnalyzer.BuildAll(table);
             var calculation = BooleanMinimizer.MinimizeCalculation(table);
+            var calculationSknf = BooleanMinimizer.MinimizeCalculationSknf(table);
             var calculationTable = BooleanMinimizer.MinimizeCalculationTable(table);
+            var calculationTableSknf = BooleanMinimizer.MinimizeCalculationTableSknf(table);
             var karnaugh = BooleanMinimizer.MinimizeKarnaugh(table);
+            var karnaughSknf = BooleanMinimizer.MinimizeKarnaughSknf(table);
 
             PrintSection("Input");
             _output.WriteLine(expression);
@@ -96,15 +99,35 @@ public sealed class ConsoleRunner(TextReader? input = null, TextWriter? output =
             }
 
             PrintSection("Minimization: Calculation");
+            _output.WriteLine("DNF:");
             _output.WriteLine(MinimizationFormatter.FormatCalculation(calculation, table.Variables));
+            _output.WriteLine();
+            _output.WriteLine("SKNF:");
+            _output.WriteLine(MinimizationFormatter.FormatCalculation(calculationSknf, table.Variables, asSknf: true));
 
             PrintSection("Minimization: Calculation-Table");
+            _output.WriteLine("DNF:");
             _output.WriteLine(MinimizationFormatter.FormatCalculation(calculationTable.BaseResult, table.Variables));
             _output.WriteLine();
             _output.WriteLine(MinimizationFormatter.FormatCoverageTable(calculationTable.Table, table.Variables));
+            _output.WriteLine();
+            _output.WriteLine("SKNF:");
+            _output.WriteLine(MinimizationFormatter.FormatCalculation(
+                calculationTableSknf.BaseResult,
+                table.Variables,
+                asSknf: true));
+            _output.WriteLine();
+            _output.WriteLine(MinimizationFormatter.FormatCoverageTable(
+                calculationTableSknf.Table,
+                table.Variables,
+                asSknf: true));
 
             PrintSection("Minimization: Karnaugh");
+            _output.WriteLine("DNF:");
             _output.WriteLine(MinimizationFormatter.FormatKarnaugh(karnaugh));
+            _output.WriteLine();
+            _output.WriteLine("SKNF:");
+            _output.WriteLine(MinimizationFormatter.FormatKarnaugh(karnaughSknf, asSknf: true));
             return 0;
         }
         catch (Exception exception)

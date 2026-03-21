@@ -90,6 +90,28 @@ public sealed class Implicant : IEquatable<Implicant>
         return literals.Count == 1 ? literals[0] : $"({string.Join(" & ", literals)})";
     }
 
+    public string ToClause(IReadOnlyList<char> variables)
+    {
+        var literals = new List<string>();
+        for (var variableIndex = 0; variableIndex < variables.Count; variableIndex++)
+        {
+            var bitMask = 1 << BitIndex.GetBitPosition(variableIndex, variables.Count);
+            if ((Mask & bitMask) != 0)
+            {
+                continue;
+            }
+
+            literals.Add((Value & bitMask) != 0 ? $"!{variables[variableIndex]}" : variables[variableIndex].ToString());
+        }
+
+        if (literals.Count == 0)
+        {
+            return "0";
+        }
+
+        return $"({string.Join(" | ", literals)})";
+    }
+
     public bool Equals(Implicant? other) => other is not null && Value == other.Value && Mask == other.Mask;
 
     public override bool Equals(object? obj) => obj is Implicant other && Equals(other);
@@ -136,27 +158,11 @@ public sealed record KarnaughMapResult(
 
 public static class BooleanMinimizer
 {
-    public static CalculationMethodResult MinimizeCalculation(TruthTable table)
-    {
-        var minterms = table.Rows.Where(row => row.Value).Select(row => row.Index).ToArray();
-        var initialSdnf = CanonicalFormBuilder.Build(table).Sdnf;
+    public static CalculationMethodResult MinimizeCalculation(TruthTable table) =>
+        MinimizeCalculationInternal(table, minimizeOnes: true);
 
-        if (minterms.Length == 0)
-        {
-            return new CalculationMethodResult(initialSdnf, minterms, [], [], [], "0");
-        }
-
-        if (minterms.Length == table.RowCount)
-        {
-            var universal = new Implicant(0, (1 << table.VariableCount) - 1, minterms);
-            return new CalculationMethodResult(initialSdnf, minterms, [], [universal], [universal], "1");
-        }
-
-        var (stages, primeImplicants) = BuildPrimeImplicants(minterms, table.VariableCount);
-        var selected = SelectMinimalCover(primeImplicants, minterms, table.VariableCount);
-        var minimalDnf = string.Join(" | ", selected.Select(implicant => implicant.ToTerm(table.Variables)));
-        return new CalculationMethodResult(initialSdnf, minterms, stages, primeImplicants, selected, minimalDnf);
-    }
+    public static CalculationMethodResult MinimizeCalculationSknf(TruthTable table) =>
+        MinimizeCalculationInternal(table, minimizeOnes: false);
 
     public static CalculationTableMethodResult MinimizeCalculationTable(TruthTable table)
     {
@@ -165,21 +171,54 @@ public static class BooleanMinimizer
         return new CalculationTableMethodResult(calculation, tableCoverage);
     }
 
-    public static KarnaughMapResult MinimizeKarnaugh(TruthTable table)
+    public static CalculationTableMethodResult MinimizeCalculationTableSknf(TruthTable table)
     {
-        var calculation = MinimizeCalculation(table);
-        if (table.VariableCount > 4)
+        var calculation = MinimizeCalculationSknf(table);
+        var tableCoverage = BuildCoverageTable(calculation.PrimeImplicants, calculation.Minterms);
+        return new CalculationTableMethodResult(calculation, tableCoverage);
+    }
+
+    public static KarnaughMapResult MinimizeKarnaugh(TruthTable table) =>
+        MinimizeKarnaughInternal(table, minimizeOnes: true);
+
+    public static KarnaughMapResult MinimizeKarnaughSknf(TruthTable table) =>
+        MinimizeKarnaughInternal(table, minimizeOnes: false);
+
+    private static CalculationMethodResult MinimizeCalculationInternal(TruthTable table, bool minimizeOnes)
+    {
+        var targetIndices = table.Rows
+            .Where(row => row.Value == minimizeOnes)
+            .Select(row => row.Index)
+            .ToArray();
+        var canonical = CanonicalFormBuilder.Build(table);
+        var initialForm = minimizeOnes ? canonical.Sdnf : canonical.Sknf;
+
+        if (targetIndices.Length == 0)
         {
-            return new KarnaughMapResult(
-                [],
-                [],
-                [],
-                [],
-                new bool[0, 0],
-                [],
-                calculation.MinimalDnf,
-                "Karnaugh map is implemented for up to 4 variables.");
+            return new CalculationMethodResult(initialForm, targetIndices, [], [], [], minimizeOnes ? "0" : "1");
         }
+
+        if (targetIndices.Length == table.RowCount)
+        {
+            var universal = new Implicant(0, (1 << table.VariableCount) - 1, targetIndices);
+            return new CalculationMethodResult(
+                initialForm,
+                targetIndices,
+                [],
+                [universal],
+                [universal],
+                minimizeOnes ? "1" : "0");
+        }
+
+        var (stages, primeImplicants) = BuildPrimeImplicants(targetIndices, table.VariableCount);
+        var selected = SelectMinimalCover(primeImplicants, targetIndices, table.VariableCount);
+        var minimalForm = BuildMinimalForm(selected, table.Variables, minimizeOnes);
+        return new CalculationMethodResult(initialForm, targetIndices, stages, primeImplicants, selected, minimalForm);
+    }
+
+    private static KarnaughMapResult MinimizeKarnaughInternal(TruthTable table, bool minimizeOnes)
+    {
+        var calculation = minimizeOnes ? MinimizeCalculation(table) : MinimizeCalculationSknf(table);
 
         var (rowVariables, columnVariables) = ResolveMapVariableSplit(table.Variables);
         var rowCodes = BuildGrayCodes(rowVariables.Count);
@@ -205,7 +244,7 @@ public static class BooleanMinimizer
             var coveredCells = new List<int>();
             for (var index = 0; index < table.RowCount; index++)
             {
-                if (!implicant.Covers(index))
+                if (!implicant.Covers(index) || table.Values[index] != minimizeOnes)
                 {
                     continue;
                 }
@@ -215,7 +254,7 @@ public static class BooleanMinimizer
             }
 
             groups.Add(new KarnaughGroup($"K{i + 1}", coveredCells.Distinct().OrderBy(cell => cell).ToArray(),
-                implicant.ToTerm(table.Variables)));
+                minimizeOnes ? implicant.ToTerm(table.Variables) : implicant.ToClause(table.Variables)));
         }
 
         return new KarnaughMapResult(
@@ -227,6 +266,21 @@ public static class BooleanMinimizer
             groups,
             calculation.MinimalDnf,
             null);
+    }
+
+    private static string BuildMinimalForm(
+        IReadOnlyList<Implicant> selected,
+        IReadOnlyList<char> variables,
+        bool minimizeOnes)
+    {
+        if (selected.Count == 0)
+        {
+            return minimizeOnes ? "0" : "1";
+        }
+
+        return minimizeOnes
+            ? string.Join(" | ", selected.Select(implicant => implicant.ToTerm(variables)))
+            : string.Join(" & ", selected.Select(implicant => implicant.ToClause(variables)));
     }
 
     private static (IReadOnlyList<GluingStage> Stages, IReadOnlyList<Implicant> PrimeImplicants) BuildPrimeImplicants(
@@ -510,7 +564,8 @@ public static class BooleanMinimizer
             2 => ([variables[0]], [variables[1]]),
             3 => ([variables[0]], [variables[1], variables[2]]),
             4 => ([variables[0], variables[1]], [variables[2], variables[3]]),
-            _ => throw new ArgumentOutOfRangeException(nameof(variables), "Karnaugh map supports 1..4 variables.")
+            5 => ([variables[0], variables[1]], [variables[2], variables[3], variables[4]]),
+            _ => throw new ArgumentOutOfRangeException(nameof(variables), "Karnaugh map supports 1..5 variables.")
         };
     }
 

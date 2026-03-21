@@ -6,13 +6,22 @@ namespace L2;
 [ExcludeFromCodeCoverage]
 public static class MinimizationFormatter
 {
-    public static string FormatCalculation(CalculationMethodResult result, IReadOnlyList<char> variables)
+    public static string FormatCalculation(
+        CalculationMethodResult result,
+        IReadOnlyList<char> variables,
+        bool asSknf = false)
     {
+        var initialLabel = asSknf ? "Initial SKNF" : "Initial SDNF";
+        var minimalLabel = asSknf ? "Minimal SKNF" : "Minimal DNF";
+        Func<Implicant, string> formatImplicant = asSknf
+            ? implicant => implicant.ToClause(variables)
+            : implicant => implicant.ToTerm(variables);
+
         var builder = new StringBuilder();
-        builder.AppendLine($"Initial SDNF: {result.InitialSdnf}");
+        builder.AppendLine($"{initialLabel}: {result.InitialSdnf}");
         if (result.Stages.Count == 0)
         {
-            builder.AppendLine($"Minimal DNF: {result.MinimalDnf}");
+            builder.AppendLine($"{minimalLabel}: {result.MinimalDnf}");
             return builder.ToString().TrimEnd();
         }
 
@@ -36,13 +45,17 @@ public static class MinimizationFormatter
         }
 
         builder.AppendLine(
-            $"Prime implicants: {string.Join(", ", result.PrimeImplicants.Select(implicant => implicant.ToTerm(variables)))}");
-        builder.AppendLine($"Minimal DNF: {result.MinimalDnf}");
+            $"Prime implicants: {string.Join(", ", result.PrimeImplicants.Select(formatImplicant))}");
+        builder.AppendLine($"{minimalLabel}: {result.MinimalDnf}");
         return builder.ToString().TrimEnd();
     }
 
-    public static string FormatCoverageTable(CoverageTable table, IReadOnlyList<char> variables)
+    public static string FormatCoverageTable(CoverageTable table, IReadOnlyList<char> variables, bool asSknf = false)
     {
+        Func<Implicant, string> formatImplicant = asSknf
+            ? implicant => implicant.ToClause(variables)
+            : implicant => implicant.ToTerm(variables);
+
         var builder = new StringBuilder();
         builder.Append("| Implicant | ");
         builder.Append(string.Join(" | ", table.Minterms));
@@ -53,7 +66,7 @@ public static class MinimizationFormatter
 
         for (var row = 0; row < table.Implicants.Count; row++)
         {
-            builder.Append($"| {table.Implicants[row].ToTerm(variables)} | ");
+            builder.Append($"| {formatImplicant(table.Implicants[row])} | ");
             var marks = new string[table.Minterms.Count];
             for (var column = 0; column < table.Minterms.Count; column++)
             {
@@ -67,7 +80,7 @@ public static class MinimizationFormatter
         return builder.ToString().TrimEnd();
     }
 
-    public static string FormatKarnaugh(KarnaughMapResult map)
+    public static string FormatKarnaugh(KarnaughMapResult map, bool asSknf = false)
     {
         if (map.Note is not null)
         {
@@ -107,7 +120,7 @@ public static class MinimizationFormatter
             }
         }
 
-        builder.AppendLine($"Minimal DNF: {map.MinimalDnf}");
+        builder.AppendLine($"{(asSknf ? "Minimal SKNF" : "Minimal DNF")}: {map.MinimalDnf}");
         return builder.ToString().TrimEnd();
     }
 }
