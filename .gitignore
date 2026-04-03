@@ -1,0 +1,42 @@
+# .NET build output
+**/bin/
+**/obj/
+
+# Test and coverage output
+**/TestResults/
+**/CoverageReport/
+**/coverage.json
+**/*.coverage
+**/*.coveragexml
+**/coverage.cobertura.xml
+
+# IDE files
+.idea/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# Local SDK/tool state
+.dotnet/
+
+# Logs and temp files
+*.log
+*.tmp
+*.cache
+
+# OS files
+Thumbs.db
+.DS_Store
+
+**/**.ico
+**/**.exe
+**/**.txt
+app/
+L3/L3
+L3/TestsL3
+L3/L3.sln
+L4/
+runtime/
